@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cortocircuito y selectividad BT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#EEF1F2;--panel:#FFFFFF;--ink:#16212C;--muted:#5A6774;--line:#D3DADF;--acc:#0A5BAA;--accS:#E3EDF7;--dn:#C24E0C;--ok:#1E7547;--okS:#E2F2E8;--bad:#B3261E;--badS:#FBE6E4;--grid:#E4E9EC;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121A21;--panel:#1A242D;--ink:#E5EBEF;--muted:#94A3AF;--line:#2F3D49;--acc:#5EA3E8;--accS:#1D3346;--dn:#F08A4B;--ok:#5BC48A;--okS:#173326;--bad:#F2786F;--badS:#3A1D1B;--grid:#24313B;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#121A21;--panel:#1A242D;--ink:#E5EBEF;--muted:#94A3AF;--line:#2F3D49;--acc:#5EA3E8;--accS:#1D3346;--dn:#F08A4B;--ok:#5BC48A;--okS:#173326;--bad:#F2786F;--badS:#3A1D1B;--grid:#24313B;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.4 "Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:end;gap:12px 24px;padding:20px 24px 14px;border-bottom:2px solid var(--ink)}
+header h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:6px 12px}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);gap:20px;padding:20px 24px}
+aside section,.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:16px}
+h2{font-size:18px;margin:0 0 10px;font-weight:700}
+h3{font-size:14px;margin:14px 0 6px;color:var(--acc);font-weight:600;border-bottom:1px solid var(--line);padding-bottom:3px}
+details summary{cursor:pointer;font-weight:700;font-size:18px;list-style:none}
+details summary::after{content:" +";color:var(--muted)}details[open] summary::after{content:" −"}
+.f{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:5px 0;font-size:14px}
+.f>span:first-child{color:var(--muted)}
+.f .in{display:flex;align-items:center;gap:4px}
+.f .in i{font-style:normal;color:var(--muted);font-size:12px;min-width:34px}
+input[type=number],input[type=text],select{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:3px 6px}
+input[type=number]{width:86px;text-align:right}
+select{max-width:200px}
+.f.chk{justify-content:flex-start}
+.f.wide{flex:1}.f.wide input{flex:1;font-size:16px;font-weight:600}
+#tree{position:relative;margin:4px 0 12px}
+.trnode,.node{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:14px}
+.trnode{padding:4px 6px;color:var(--muted)}
+.trnode b,.node b{margin-left:auto;font-weight:600;white-space:nowrap}
+.node{border:0;border-left:2px solid var(--ink);border-radius:0;background:transparent;padding:5px 6px 5px calc(6px + var(--d)*18px);margin-left:13px;position:relative}
+.node::before{content:"";position:absolute;left:0;top:50%;width:calc(4px + var(--d)*18px);border-top:1px solid var(--muted)}
+.node.on{background:var(--accS)}
+.node .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sym{width:22px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6}
+.node em{font-style:normal;font-size:12px;padding:1px 6px;border-radius:10px}
+em.ok{background:var(--okS);color:var(--ok)}em.bad{background:var(--badS);color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.edhead{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+fieldset{border:1px solid var(--line);border-radius:4px;margin:0;padding:6px 12px 10px}
+legend{font-weight:700;padding:0 4px}
+#board,#board2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);padding:8px 12px;border-radius:4px}
+.kpi span{display:block;color:var(--muted);font-size:13px}.kpi b{font-size:24px;font-weight:700}
+.kpi.ok{border-left-color:var(--ok)}.kpi.bad{border-left-color:var(--bad)}.kpi.bad b{color:var(--bad)}
+#warn p{margin:0 0 10px;padding:8px 12px;border-left:4px solid var(--bad);background:var(--badS);border-radius:4px;font-size:14px}
+#chart{width:100%;height:auto;display:block}
+#chart .frame{fill:none;stroke:var(--line)}
+#chart .gM{stroke:var(--grid);stroke-width:1}#chart .gm{stroke:var(--grid);stroke-width:.6;stroke-dasharray:2 3}
+#chart .ax{font-size:11px;fill:var(--muted)}#chart .axt{font-size:12px;fill:var(--muted)}
+#chart .bUp{fill:var(--acc);fill-opacity:.22;stroke:var(--acc);stroke-width:1.4}
+#chart .bDn{fill:var(--dn);fill-opacity:.22;stroke:var(--dn);stroke-width:1.4}
+#chart .kS{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-dasharray:6 4}
+#chart line.vMax{stroke:var(--ink);stroke-width:1.2}#chart line.vMin{stroke:var(--ink);stroke-dasharray:3 3}
+#chart line.vSel{stroke:var(--bad);stroke-width:1.6}
+#chart .vt{font-size:11px;fill:var(--ink)}#chart .vt.vSel{fill:var(--bad)}
+#legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:6px}
+.lg::before{content:"";display:inline-block;width:14px;height:10px;margin-right:6px;border-radius:2px;vertical-align:-1px}
+.lg.up::before{background:var(--acc)}.lg.dn::before{background:var(--dn)}.lg.ks::before{border-top:2px dashed var(--muted);height:0;vertical-align:3px}
+#selmsg{margin:10px 0 0;font-size:14px;max-width:90ch}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+thead th{font-weight:600;color:var(--muted);vertical-align:bottom;white-space:normal;text-align:right}
+tbody th{text-align:left;font-weight:600}
+th small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+thead th:first-child{text-align:left}
+thead th small{display:block;font-weight:400;font-size:11px}
+.nt td{white-space:normal;text-align:left;max-width:70ch}.nt td:last-child{white-space:nowrap}
+#board2{margin-top:10px}
+#results tbody tr{cursor:pointer}#results tbody tr.on{background:var(--accS)}
+td.ok{color:var(--ok)}td.bad{color:var(--bad);font-weight:600;background:var(--badS)}td.na{color:var(--muted)}
+.zt td{font-size:13px}.eq p{margin:6px 0;font-size:14px;max-width:95ch}
+.results{padding:0 24px 24px}
+.notes{font-size:13px;color:var(--muted);max-width:110ch}
+.notes li{margin:3px 0}
+dialog{border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:min(760px,92vw)}
+dialog textarea{width:100%;height:320px;font:12px/1.35 Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+#flash{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,40px);opacity:0;background:var(--ink);color:var(--paper);padding:8px 16px;border-radius:4px;transition:.25s}
+#flash.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){#flash{transition:none}}
+@media (max-width:980px){main{grid-template-columns:1fr}.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Cortocircuito y selectividad en tableros BT</h1>
+  <p>Icc máximas y mínimas por IEC 60909-0, con verificación de poder de corte, desconexión automática, solicitación térmica (AEA 90364-4-41 y 4-43) y selectividad por curvas entre interruptores.</p></div>
+  <div class="acts"><button id="btnEx">Cargar ejemplo</button><button id="btnJSON">Guardar o cargar proyecto</button><button id="btnTSV" class="pri">Copiar resultados para Excel</button></div>
+</header>
+<main>
+  <aside>
+    <section><details open><summary>Alimentación</summary><div id="srcForm"></div></details></section>
+    <section><h2>Esquema unifilar</h2><div id="tree"></div>
+      <div class="row"><button id="addNode">Agregar salida a la barra seleccionada</button><button id="delNode">Eliminar salida</button></div></section>
+  </aside>
+  <div>
+    <div id="board"></div><div id="warn"></div>
+    <div class="card"><h2>Bornes del transformador</h2><div class="tw" id="trafo"></div></div>
+    <div class="card"><div id="editor"></div></div>
+    <div class="card"><h2>Curvas tiempo-corriente</h2><svg id="chart" viewBox="0 0 760 470" role="img" aria-label="Bandas tiempo-corriente del interruptor seleccionado y del aguas arriba"></svg><div id="legend"></div><p id="selmsg"></p></div>
+    <div class="card"><h2>Memoria de cálculo</h2><div class="tw" id="memo"></div></div>
+  </div>
+</main>
+<section class="results">
+  <div class="card"><h2>Resultados por salida</h2>
+  <div class="tw"><table id="results"><thead><tr><th>Salida</th><th>Ik3 / Ik1 en interruptor [kA]</th><th>Ik3 máx barra [kA]</th><th>ip [kA]</th><th>Ik1 máx [kA]</th><th>Ik3 mín [kA]</th><th>Ik1 mín [kA]</th><th>R/X</th><th>Icu ≥ Icc<small>4-43 434.5.1</small></th><th>Ib ≤ Ir ≤ Iz<small>4-43 433.1</small></th><th>Desconexión a Icc mín<small>4-41 411.3.2</small></th><th>I²t ≤ k²S²<small>4-43 434.5.2</small></th><th>Selectividad<small>60947-2 anexo A</small></th></tr></thead><tbody></tbody></table></div>
+  <ul class="notes">
+    <li>Icc en el interruptor = Icc en la barra de la que se alimenta (falla inmediatamente aguas abajo de sus bornes). Contra ese valor se verifican Icu (AEA 90364-4-43, 434.5.1) y la selectividad.</li>
+    <li>Desconexión: tiempo máximo de la banda a min(Ik1, Ik2) mín en el extremo de la línea, frente a 0,4 s (terminal, TN 230 V) o 5 s (distribución), AEA 90364-4-41. El alcance de "terminal" depende de la edición: ≤ 32 A en la AEA 2006; IEC 60364-4-41:2017 lo extiende a circuitos de tomas ≤ 63 A.</li>
+    <li>Térmica: I²t ≤ k²S² a Icc máx (inicio de línea) y a Icc mín (fin de línea, sobre fase y PE), AEA 90364-4-43, 434.5.2. Para interruptores limitadores cargar el I²t pasante de catálogo; si no, se usa I²·t de apertura, que es conservador.</li>
+    <li>Bandas genéricas: térmico TM sin disparo bajo 1,05·Ir y disparo garantizado sobre 1,30·Ir, tiempo ±20 %; electrónico L 1,05–1,20·Ir, S ±10 % en corriente y tiempo; instantáneo con la tolerancia cargada. Reemplazan la curva real solo como aproximación: para la oferta, confirmar con curvas y tablas de selectividad del fabricante.</li>
+    <li>Secuencia cero de cables aproximada como lazo (R + Rpe) + j2X. Motores: aporte solo trifásico, en barra principal, sin aporte a Ik1.</li>
+  </ul></div>
+  <div class="card"><h2>Normas utilizadas en la verificación</h2>
+  <div class="tw"><table class="nt"><thead><tr><th>Norma</th><th>Qué se usa en la app</th><th>Referencia</th></tr></thead><tbody>
+  <tr><th>IEC 60909-0</th><td>Método de cálculo de Icc: fuente equivalente con factor c, impedancia de red, corrección K<sub>T</sub> del transformador, κ e ip, Ik mín con c<sub>mín</sub> y R de cables a temperatura final, componentes simétricas para Ik1 e Ik2, aporte de motores</td><td>Cap. 1 a 7, tabla 1 (factor c)</td></tr>
+  <tr><th>IEC 60038</th><td>Tensiones normalizadas: base de la elección c<sub>máx</sub> 1,05 o 1,10 según tolerancia de la red BT</td><td>Tabla de tensiones BT</td></tr>
+  <tr><th>AEA 90364-4-41</th><td>Desconexión automática en esquema TN: tiempo máximo 0,4 s en circuitos terminales a 230 V y 5 s en distribución, verificado a la Icc mínima en el extremo de la línea</td><td>411.3.2 y tabla 41.1</td></tr>
+  <tr><th>AEA 90364-4-43</th><td>Coordinación Ib ≤ In ≤ Iz; poder de corte ≥ Icc presunta en el punto de instalación (o respaldo según fabricante); solicitación térmica I²t ≤ k²S²; valores de k por material y aislación</td><td>433.1, 434.5.1, 434.5.2, tabla 43A</td></tr>
+  <tr><th>AEA 90364-5-54</th><td>Verificación adiabática del conductor de protección (PE/PEN) a la corriente de falla mínima</td><td>543.1.2</td></tr>
+  <tr><th>AEA 90364-5-53</th><td>Requisito de coordinación y selectividad entre dispositivos de protección en serie</td><td>Sección 536 (numeración IEC 60364-5-53)</td></tr>
+  <tr><th>AEA 90364-5-52</th><td>Fuente del dato de entrada Iz (corriente admisible según método de instalación y factores de corrección)</td><td>Tablas de capacidad de corriente</td></tr>
+  <tr><th>IEC 60947-2</th><td>Interruptores automáticos: Icu, tolerancias convencionales de disparo térmico (1,05/1,30·Ir) e instantáneo (±20 %), selectividad y respaldo entre interruptores</td><td>8.3.3, anexo A</td></tr>
+  <tr><th>IEC 61439-1 / -2</th><td>Envolvente del tablero: Icw (1 s) frente a Ik3 e Ipk frente a ip en la barra principal; relación Ipk/Icw (factor n)</td><td>5.3, 10.11, tabla 7</td></tr>
+  </tbody></table></div>
+  <p class="notes">Las cláusulas AEA siguen la numeración IEC 60364 que adopta la reglamentación. Confirmar contra la edición vigente que se use en cada proyecto. La app parafrasea los criterios: no reproduce texto normativo.</p></div>
+</section>
+<dialog id="dlg"><h2 id="dlgTitle"></h2><textarea id="dlgText" spellcheck="false"></textarea><div class="row" style="margin-top:8px"><button id="dlgImport" class="pri">Cargar este proyecto</button><button id="dlgClose">Cerrar</button></div></dialog>
+<div id="flash" role="status"></div>
+<script>
+// ===== Núcleo de cálculo (IEC 60909-0 + verificaciones AEA 90364) =====
+const RHO = { Cu: 1 / 54, Al: 1 / 34 };            // Ω·mm²/m a 20 °C (IEC 60909-0)
+const KTAB = { Cu: { PVC: 115, XLPE: 143 }, Al: { PVC: 76, XLPE: 94 } }; // AEA 90364-4-43 / IEC 60364-4-43 tabla 43A
+const C = (r, x) => ({ r, x });
+const add = (a, b) => C(a.r + b.r, a.x + b.x);
+const mul = (a, k) => C(a.r * k, a.x * k);
+const cabs = a => Math.hypot(a.r, a.x);
+const cmul = (a, b) => C(a.r * b.r - a.x * b.x, a.r * b.x + a.x * b.r);
+const cdiv = (a, b) => { const d = b.r * b.r + b.x * b.x; return C((a.r * b.r + a.x * b.x) / d, (a.x * b.r - a.r * b.x) / d); };
+const par = (a, b) => b ? cdiv(cmul(a, b), add(a, b)) : a;
+const SQ3 = Math.sqrt(3);
+
+function source(s) {
+  const U = s.Ur;
+  const zq = Scc => { const Z = 1.1 * U * U / (Scc * 1e6); const X = Z / Math.sqrt(1 + s.RXq ** 2); return C(s.RXq * X, X); };
+  const Sn = s.Sn * 1e3;
+  const ZTm = s.uk / 100 * U * U / Sn;
+  const RT = s.Pk * 1e3 * U * U / (Sn * Sn);
+  const XT = Math.sqrt(Math.max(ZTm * ZTm - RT * RT, 0));
+  const xT = XT / (U * U / Sn);
+  const KT = s.KT ? 0.95 * s.cmax / (1 + 0.6 * xT) : 1;
+  const ZT = mul(C(RT, XT), KT / s.nTr);
+  const Z0T = mul(ZT, s.Z0ratio);
+  const InT = Sn / (SQ3 * U);
+  let ZM = null;
+  if (s.motIr > 0) { const Zm = U / (SQ3 * s.motLR * s.motIr); const Xm = Zm / Math.sqrt(1 + s.motRX ** 2); ZM = C(s.motRX * Xm, Xm); }
+  const warn = [];
+  const pkPct = s.Pk * 1e3 / Sn * 100;
+  if (s.PkSrc === 'est') warn.push(`Pk = ${s.Pk} kW está marcado como estimado: VERIFICAR con el protocolo de ensayo del transformador. Afecta R/X, κ e ip, y las Icc mín aguas abajo.`);
+  if (pkPct > 2) warn.push(`Pk = ${s.Pk} kW es ${pkPct.toFixed(2)} % de Sn: valor alto para un transformador de distribución, verificar unidades (kW) y protocolo.`);
+  if (pkPct < 0.5) warn.push(`Pk = ${s.Pk} kW es ${pkPct.toFixed(2)} % de Sn. Las pérdidas en carga de un transformador de distribución suelen estar entre 0,7 y 1,5 % de Sn: verificar que no se haya cargado P0 (pérdidas en vacío). Con R_T subestimada, κ e ip quedan sobreestimados.`);
+  if (s.SccMin >= s.SccMax) warn.push('Scc mín = Scc máx: pedir a la distribuidora la potencia de cortocircuito mínima (condición de red reducida). Las Icc mín dependen de ese dato.');
+  const ZTnoK = C(RT / s.nTr, XT / s.nTr);
+  return { ZTnoK, Zq: zq(s.SccMax), ZqMin: zq(s.SccMin), ZT, Z0T, ZTraw: C(RT / s.nTr, XT / s.nTr), KT, xT, InT, ZM, warn };
+}
+
+function cable(c, fT) {
+  if (!c.L || c.L <= 0) return { Z1: C(0, 0), Z0: C(0, 0), R: 0, X: 0, Rpe: 0 };
+  const rho = RHO[c.mat];
+  const R = rho * c.L / (c.S * c.n) * fT;
+  const X = c.x * c.L / 1000 / c.n;
+  const Rpe = rho * c.L / (c.Spe > 0 ? c.Spe : c.S * c.n) * fT;
+  // Secuencia cero aproximada para falla fase-PE: lazo = (2Z1+Z0)/3 = (R+Rpe) + j2X
+  return { Z1: C(R, X), Z0: C(R + 3 * Rpe, 4 * X), R, X, Rpe };
+}
+
+// Bandas tiempo-corriente: [t_min (no disparo antes), t_max (despeje garantizado)]
+function tripTimes(b, I) {
+  let lo = Infinity, hi = Infinity;
+  const m = I / b.Ir;
+  if (b.type === 'TM') {
+    if (m > 1.05) lo = Math.min(lo, 0.8 * b.t6 * ((6 / 1.05) ** 2 - 1) / ((m / 1.05) ** 2 - 1));
+    if (m > 1.30) hi = Math.min(hi, 7200, 1.2 * b.t6 * ((6 / 1.3) ** 2 - 1) / ((m / 1.3) ** 2 - 1));
+  } else {
+    if (m > 1.05) lo = Math.min(lo, 0.8 * b.t6 * 36 / (m * m));
+    if (m > 1.20) hi = Math.min(hi, 7200, 1.2 * b.t6 * 36 / (m * m));
+    if (b.SdOn) {
+      const Isd = b.Isd * b.Ir;
+      const f = x => (b.i2t && x < 10 * b.Ir) ? b.tsd * (10 * b.Ir / x) ** 2 : b.tsd;
+      if (I > 0.9 * Isd) lo = Math.min(lo, 0.9 * f(I));
+      if (I > 1.1 * Isd) hi = Math.min(hi, 1.1 * f(I) + 0.02);
+    }
+  }
+  if (b.IiOn) {
+    const tol = b.tolI / 100, Ii = b.Ii * b.In;
+    if (I > Ii * (1 - tol)) lo = Math.min(lo, 0.005);
+    if (I >= Ii * (1 + tol)) hi = Math.min(hi, b.tinst);
+  }
+  // ningún disparo despeja antes del tiempo mecánico de apertura
+  if (isFinite(hi)) hi = Math.max(hi, b.tinst);
+  if (isFinite(lo)) lo = Math.max(lo, 0.005);
+  return [lo, hi];
+}
+
+function selectivity(down, up, Imax) {
+  const I0 = down.Ir * 1.05;
+  if (Imax <= I0) return { total: true, Is: null, Imax };
+  const N = 600;
+  for (let i = 0; i <= N; i++) {
+    const I = I0 * (Imax / I0) ** (i / N);
+    const ulo = tripTimes(up, I)[0], dhi = tripTimes(down, I)[1];
+    if (isFinite(ulo) && ulo <= dhi) return { total: false, Is: I, Imax };
+  }
+  return { total: true, Is: null, Imax };
+}
+
+function compute(st) {
+  const s = st.src, U = s.Ur, src = source(s);
+  const fT = 1 + 0.004 * (s.thetaE - 20);
+  const ZsMax = add(src.Zq, src.ZT), ZsMin = add(src.ZqMin, src.ZT);
+  const res = {};
+  const byId = Object.fromEntries(st.nodes.map(n => [n.id, n]));
+  const ikset = (Z1, Z1nm, Z0, Z1min, Z0min) => {
+    const Ik3 = s.cmax * U / (SQ3 * cabs(Z1));
+    const rx = Z1.r / Z1.x;
+    const kappa = 1.02 + 0.98 * Math.exp(-3 * rx);
+    return {
+      Ik3, rx, kappa, ip: kappa * Math.SQRT2 * Ik3,
+      Ik1: SQ3 * s.cmax * U / cabs(add(mul(Z1nm, 2), Z0)),
+      Ik3min: s.cmin * U / (SQ3 * cabs(Z1min)),
+      Ik2min: s.cmin * U / (SQ3 * cabs(Z1min)) * SQ3 / 2,
+      Ik1min: SQ3 * s.cmin * U / cabs(add(mul(Z1min, 2), Z0min)),
+    };
+  };
+  const trLoc = ikset(ZsMax, ZsMax, src.Z0T, ZsMin, src.Z0T);
+  st.nodes.forEach((n, idx) => {
+    const cb = cable(n.cable, 1), cbm = cable(n.cable, fT);
+    const isRoot = n.parent === 'TR';
+    const p = isRoot ? { Z1: ZsMax, Z1nm: ZsMax, Z0: src.Z0T, Z1min: ZsMin, Z0min: src.Z0T } : res[n.parent].Z;
+    let Z1 = add(p.Z1, cb.Z1);
+    const Z1nm = add(p.Z1nm, cb.Z1), Z0 = add(p.Z0, cb.Z0), Z1min = add(p.Z1min, cbm.Z1), Z0min = add(p.Z0min, cbm.Z0);
+    let loc;
+    if (isRoot) {
+      if (idx === 0 && src.ZM) { Z1 = par(Z1, src.ZM); loc = ikset(par(ZsMax, add(cb.Z1, src.ZM)), ZsMax, src.Z0T, ZsMin, src.Z0T); }
+      else loc = trLoc;
+    } else loc = res[n.parent].ik;
+    const ik = ikset(Z1, Z1nm, Z0, Z1min, Z0min);
+    const b = n.brk;
+    const chk = {};
+    // 1) Poder de corte (AEA 90364-4-43, 434.5.1)
+    const IccLoc = Math.max(loc.Ik3, loc.Ik1);
+    chk.icu = { ok: b.Icu * 1e3 >= IccLoc, val: IccLoc, Icu: b.Icu };
+    // 2) Coordinación Ib ≤ In ≤ Iz (433.1)
+    chk.iz = (n.Iz > 0) ? { ok: n.Ib <= b.Ir && b.Ir <= n.Iz, na: false } : { ok: n.Ib <= b.Ir, na: true };
+    // 3) Desconexión automática a Icc mín (AEA 90364-4-41)
+    const Imin = Math.min(ik.Ik1min, ik.Ik2min);
+    const tlim = n.circ === 'term' ? 0.4 : 5;
+    const tdis = tripTimes(b, Imin)[1];
+    chk.dis = { ok: tdis <= tlim, I: Imin, t: tdis, tlim };
+    // 4) Solicitación térmica I²t ≤ k²S² (434.5.2)
+    if (n.cable.L > 0) {
+      const k = KTAB[n.cable.mat][n.cable.ins];
+      const S = n.cable.S * n.cable.n, Spe = n.cable.Spe > 0 ? n.cable.Spe : S;
+      const tA = tripTimes(b, IccLoc)[1];
+      let EA = IccLoc * IccLoc * tA, letUsed = false;
+      if (b.I2tLet > 0 && tA <= b.tinst + 1e-9) { EA = b.I2tLet * 1e6; letUsed = true; }
+      const EB = Imin * Imin * tdis;
+      const lim = k * k * S * S, limPE = k * k * Spe * Spe;
+      chk.th = { ok: EA <= lim && EB <= Math.min(lim, limPE) && isFinite(EB), EA, EB, lim, limPE, k, letUsed, tA, tB: tdis };
+    } else chk.th = { ok: true, na: true };
+    // 5) Selectividad con el interruptor aguas arriba
+    if (!isRoot) {
+      const up = byId[n.parent].brk;
+      const sel = selectivity(b, up, IccLoc);
+      const tab = n.selTable > 0 ? n.selTable * 1e3 : 0;
+      sel.table = tab;
+      sel.okEff = sel.total || (tab > 0 && tab >= IccLoc);
+      sel.IsEff = sel.total ? IccLoc : Math.max(sel.Is, tab);
+      sel.ratioIr = up.Ir / b.Ir;
+      chk.sel = sel;
+    } else chk.sel = { na: true, okEff: true };
+    res[n.id] = { Z: { Z1, Z1nm, Z0, Z1min, Z0min }, ik, loc, chk, cb, cbm };
+  });
+  return { src, res, ZsMax, ZsMin, fT, trLoc };
+}
+
+// ===== Interfaz =====
+const fmt = (v, d = 3) => (v == null || !isFinite(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumSignificantDigits: d });
+const kA = v => fmt(v / 1e3, 3);
+const tfmt = t => !isFinite(t) ? 'no dispara' : t < 1 ? fmt(t * 1e3, 3) + ' ms' : fmt(t, 3) + ' s';
+
+const EXAMPLE = {
+  src: { UnMT: 13.2, SccMax: 350, SccMin: 250, RXq: 0.1, Sn: 2000, nTr: 1, Ur: 400, uk: 6, Pk: 20, PkSrc: 'est', Z0ratio: 1, KT: true, cmax: 1.05, cmin: 0.95, thetaE: 160, motIr: 0, motLR: 5, motRX: 0.42, Icw: 65, Ipk: 143 },
+  nodes: [
+    { id: 'n1', name: 'TGBT – barra principal', parent: 'TR', Ib: 2887, Iz: 3400, circ: 'dist', selTable: 0,
+      cable: { mat: 'Cu', ins: 'XLPE', S: 240, n: 8, Spe: 960, L: 15, x: 0.08 },
+      brk: { type: 'ELEC', In: 3200, Ir: 2900, t6: 12, SdOn: true, Isd: 4, tsd: 0.3, i2t: false, IiOn: false, Ii: 15, tolI: 10, tinst: 0.05, Icu: 65, I2tLet: 0 } },
+    { id: 'n2', name: 'CCM-01', parent: 'n1', Ib: 420, Iz: 640, circ: 'dist', selTable: 0,
+      cable: { mat: 'Cu', ins: 'XLPE', S: 185, n: 2, Spe: 185, L: 80, x: 0.08 },
+      brk: { type: 'ELEC', In: 630, Ir: 500, t6: 6, SdOn: true, Isd: 6, tsd: 0.1, i2t: false, IiOn: true, Ii: 12, tolI: 10, tinst: 0.03, Icu: 70, I2tLet: 0 } },
+    { id: 'n3', name: 'Bomba P-101', parent: 'n2', Ib: 100, Iz: 125, circ: 'dist', selTable: 0,
+      cable: { mat: 'Cu', ins: 'PVC', S: 35, n: 1, Spe: 16, L: 60, x: 0.08 },
+      brk: { type: 'TM', In: 125, Ir: 110, t6: 8, SdOn: false, Isd: 6, tsd: 0.1, i2t: false, IiOn: true, Ii: 10, tolI: 20, tinst: 0.02, Icu: 50, I2tLet: 0 } },
+    { id: 'n4', name: 'TS-Iluminación', parent: 'n1', Ib: 50, Iz: 70, circ: 'dist', selTable: 0,
+      cable: { mat: 'Cu', ins: 'PVC', S: 16, n: 1, Spe: 16, L: 40, x: 0.08 },
+      brk: { type: 'TM', In: 63, Ir: 63, t6: 5, SdOn: false, Isd: 6, tsd: 0.1, i2t: false, IiOn: true, Ii: 10, tolI: 20, tinst: 0.02, Icu: 36, I2tLet: 0 } },
+    { id: 'n5', name: 'Tomas taller', parent: 'n4', Ib: 16, Iz: 32, circ: 'term', selTable: 0,
+      cable: { mat: 'Cu', ins: 'PVC', S: 4, n: 1, Spe: 4, L: 30, x: 0.08 },
+      brk: { type: 'TM', In: 25, Ir: 25, t6: 4, SdOn: false, Isd: 6, tsd: 0.1, i2t: false, IiOn: true, Ii: 7.5, tolI: 33, tinst: 0.01, Icu: 10, I2tLet: 0 } },
+  ]
+};
+const KEY = 'icc-selectividad-v2';
+let state, sel, R;
+try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+if (!state || !state.nodes || !state.nodes.length) state = JSON.parse(JSON.stringify(EXAMPLE));
+sel = state.nodes[Math.min(1, state.nodes.length - 1)].id;
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- Formularios ----------
+const SRC_FIELDS = [
+  ['g', 'Red de media tensión'],
+  ['UnMT', 'Tensión MT', 'kV'], ['SccMax', 'Scc máx de red', 'MVA'], ['SccMin', 'Scc mín de red', 'MVA'], ['RXq', 'R/X de red', '—'],
+  ['g', 'Transformador'],
+  ['Sn', 'Potencia asignada', 'kVA'], ['nTr', 'Unidades en paralelo', 'u'], ['Ur', 'Tensión BT (vacío)', 'V'], ['uk', 'Tensión de cortocircuito', '%'],
+  ['Pk', 'Pérdidas en carga Pk (no P0)', 'kW'], ['PkSrc', 'Origen de Pk', 'sel:prot|Protocolo de ensayo,est|Estimado (VERIFICAR)'], ['Z0ratio', 'Z0T / Z1T (Dyn)', '—'], ['KT', 'Factor KT (IEC 60909)', 'bool'],
+  ['g', 'Parámetros de cálculo'],
+  ['cmax', 'Factor c máx', 'sel:1.05|1,05 (tolerancia ±6 %),1.1|1,10 (tolerancia ±10 %)'], ['cmin', 'Factor c mín', '—'], ['thetaE', 'θ conductor para Icc mín', '°C'],
+  ['g', 'Motores en barra principal'],
+  ['motIr', 'Σ corrientes nominales', 'A'], ['motLR', 'I arranque / In', '—'], ['motRX', 'R/X motores', '—'],
+  ['g', 'Envolvente del tablero (IEC 61439)'],
+  ['Icw', 'Icw barras (1 s)', 'kA'], ['Ipk', 'Ipk barras', 'kA'],
+];
+function fieldHTML(path, label, unit, val) {
+  if (unit === 'bool') return `<label class="f chk"><input type="checkbox" data-p="${path}" ${val ? 'checked' : ''}><span>${label}</span></label>`;
+  if (unit.startsWith('sel:')) {
+    const opts = unit.slice(4).split(',').map(o => { const [v, t] = o.split('|'); return `<option value="${v}" ${String(val) === v ? 'selected' : ''}>${t}</option>`; }).join('');
+    return `<label class="f"><span>${label}</span><select data-p="${path}">${opts}</select></label>`;
+  }
+  return `<label class="f"><span>${label}</span><span class="in"><input type="number" step="any" data-p="${path}" value="${val}"><i>${unit === '—' ? '' : unit}</i></span></label>`;
+}
+function renderSource() {
+  $('#srcForm').innerHTML = SRC_FIELDS.map(f => f[0] === 'g' ? `<h3>${f[1]}</h3>` : fieldHTML('src.' + f[0], f[1], f[2], state.src[f[0]])).join('');
+}
+function nodeById(id) { return state.nodes.find(n => n.id === id); }
+function renderEditor() {
+  const n = nodeById(sel); if (!n) return;
+  const idx = state.nodes.indexOf(n);
+  const parents = idx === 0 ? `<option value="TR">Bornes del transformador</option>` :
+    state.nodes.slice(0, idx).map(p => `<option value="${p.id}" ${n.parent === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  const b = n.brk, isE = b.type === 'ELEC';
+  const F = (p, l, u, v) => fieldHTML(p, l, u, v);
+  $('#editor').innerHTML = `
+  <div class="edhead">
+    <label class="f wide"><span>Nombre de la salida o barra</span><input type="text" data-p="name" value="${esc(n.name)}"></label>
+    <label class="f"><span>Alimentada desde</span><select data-p="parent" ${idx === 0 ? 'disabled' : ''}>${parents}</select></label>
+  </div>
+  <div class="cols">
+    <fieldset><legend>${idx === 0 ? 'Vínculo trafo → tablero' : 'Cable de alimentación'}</legend>
+      ${F('cable.mat', 'Material', 'sel:Cu|Cobre,Al|Aluminio', n.cable.mat)}
+      ${F('cable.ins', 'Aislación', 'sel:PVC|PVC (70 °C),XLPE|XLPE / EPR (90 °C)', n.cable.ins)}
+      ${F('cable.S', 'Sección por conductor', 'mm²', n.cable.S)}
+      ${F('cable.n', 'Conductores por fase', 'u', n.cable.n)}
+      ${F('cable.Spe', 'Sección PE / PEN total', 'mm²', n.cable.Spe)}
+      ${F('cable.L', 'Longitud', 'm', n.cable.L)}
+      ${F('cable.x', 'Reactancia', 'Ω/km', n.cable.x)}
+      ${F('Ib', 'Corriente de proyecto Ib', 'A', n.Ib)}
+      ${F('Iz', 'Corriente admisible Iz', 'A', n.Iz)}
+      ${F('circ', 'Tipo de circuito', 'sel:dist|Distribución (5 s),term|Terminal TN 230 V (0,4 s)', n.circ)}
+    </fieldset>
+    <fieldset><legend>Interruptor en el origen</legend>
+      ${F('brk.type', 'Disparador', 'sel:TM|Termomagnético,ELEC|Electrónico LSI', b.type)}
+      ${F('brk.In', 'Corriente asignada In', 'A', b.In)}
+      ${F('brk.Ir', 'Ajuste térmico / L  Ir', 'A', b.Ir)}
+      ${F('brk.t6', isE ? 'tr a 6×Ir' : 't térmico a 6×Ir (nominal)', 's', b.t6)}
+      ${isE ? F('brk.SdOn', 'Función S activa', 'bool', b.SdOn) + F('brk.Isd', 'Isd', '×Ir', b.Isd) + F('brk.tsd', 'tsd', 's', b.tsd) + F('brk.i2t', 'S con I²t = cte', 'bool', b.i2t) : ''}
+      ${F('brk.IiOn', 'Instantáneo activo', 'bool', b.IiOn)}
+      ${F('brk.Ii', 'Ii', '×In', b.Ii)}
+      ${F('brk.tolI', 'Tolerancia de Ii', '± %', b.tolI)}
+      ${F('brk.tinst', 'Tiempo de apertura instantánea', 's', b.tinst)}
+      ${F('brk.Icu', 'Icu a Ue', 'kA', b.Icu)}
+      ${F('brk.I2tLet', 'I²t pasante a Icc máx (catálogo)', 'kA²s', b.I2tLet)}
+      ${idx === 0 ? '' : F('selTable', 'Límite selectividad s/ tabla fabricante', 'kA', n.selTable)}
+    </fieldset>
+  </div>`;
+}
+
+$('#editor').addEventListener('input', onEdit); $('#editor').addEventListener('change', onEdit);
+$('#srcForm').addEventListener('input', onEdit); $('#srcForm').addEventListener('change', onEdit);
+function setPath(obj, path, v) { const k = path.split('.'); let o = obj; for (let i = 0; i < k.length - 1; i++) o = o[k[i]]; o[k[k.length - 1]] = v; }
+function onEdit(e) {
+  const el = e.target, p = el.dataset.p; if (!p) return;
+  let v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? parseFloat(el.value) : el.value;
+  if (el.type === 'number' && !isFinite(v)) return;
+  if (p.startsWith('src.')) { if (p === 'src.cmax') v = parseFloat(v); setPath(state, p, v); }
+  else setPath(nodeById(sel), p, v);
+  if (p === 'brk.type' && e.type === 'change') renderEditor();
+  if (p === 'parent') { fixOrder(); }
+  refresh();
+}
+function fixOrder() { // garantiza padre antes que hijo
+  const out = [], seen = new Set();
+  const visit = id => state.nodes.filter(n => n.parent === id).forEach(n => { if (!seen.has(n.id)) { seen.add(n.id); out.push(n); visit(n.id); } });
+  visit('TR'); state.nodes.filter(n => !seen.has(n.id)).forEach(n => out.push(n)); state.nodes = out;
+}
+
+// ---------- Esquema unifilar ----------
+function status(id) { const c = R.res[id].chk; return [c.icu.ok, c.iz.ok, c.dis.ok, c.th.ok, c.sel.okEff].every(Boolean); }
+function depth(n) { let d = 0, p = n.parent; while (p !== 'TR') { d++; p = nodeById(p).parent; } return d; }
+function renderTree() {
+  $('#tree').innerHTML = `<div class="trnode"><svg viewBox="0 0 40 24" class="sym"><circle cx="14" cy="12" r="7"/><circle cx="24" cy="12" r="7"/></svg><span>Transformador ${fmt(state.src.Sn, 4)} kVA</span><b>${kA(R.trLoc.Ik3)} kA</b></div>` +
+    state.nodes.map(n => {
+      const ok = status(n.id), r = R.res[n.id];
+      return `<button class="node ${n.id === sel ? 'on' : ''}" data-id="${n.id}" style="--d:${depth(n)}">
+        <svg viewBox="0 0 24 24" class="sym"><path d="M12 1v7M7 13l10-6M12 16v7M9 4l6 6M15 4l-6 6" transform="translate(0,0)"/></svg>
+        <span class="nm">${esc(n.name)}</span><b>${kA(r.ik.Ik3)} kA</b><em class="${ok ? 'ok' : 'bad'}">${ok ? 'cumple' : 'revisar'}</em></button>`;
+    }).join('');
+}
+$('#tree').addEventListener('click', e => { const b = e.target.closest('.node'); if (!b) return; sel = b.dataset.id; renderEditor(); refresh(); });
+$('#addNode').onclick = () => {
+  const id = 'n' + Date.now().toString(36);
+  const p = nodeById(sel);
+  const nn = { id, name: 'Nueva salida', parent: sel, Ib: Math.round(p.brk.Ir / 4), Iz: 0, circ: 'dist', selTable: 0,
+    cable: { mat: 'Cu', ins: 'PVC', S: 16, n: 1, Spe: 16, L: 30, x: 0.08 },
+    brk: { type: 'TM', In: 63, Ir: 63, t6: 5, SdOn: false, Isd: 6, tsd: 0.1, i2t: false, IiOn: true, Ii: 10, tolI: 20, tinst: 0.02, Icu: 25, I2tLet: 0 } };
+  state.nodes.push(nn); fixOrder(); sel = id; renderEditor(); refresh();
+};
+$('#delNode').onclick = () => {
+  const n = nodeById(sel); if (state.nodes.indexOf(n) === 0) { flash('La barra principal no se puede eliminar.'); return; }
+  const kill = new Set([n.id]); let grew = true;
+  while (grew) { grew = false; state.nodes.forEach(x => { if (kill.has(x.parent) && !kill.has(x.id)) { kill.add(x.id); grew = true; } }); }
+  state.nodes = state.nodes.filter(x => !kill.has(x.id)); sel = n.parent; renderEditor(); refresh();
+  flash(`Eliminadas ${kill.size} salida(s).`);
+};
+
+// ---------- Resultados ----------
+const cell = (ok, txt, na) => `<td class="${na ? 'na' : ok ? 'ok' : 'bad'}">${txt}</td>`;
+function rows() {
+  return state.nodes.map(n => {
+    const r = R.res[n.id], c = r.chk, ik = r.ik;
+    const up = n.parent === 'TR' ? 'Trafo' : nodeById(n.parent).name;
+    const sl = c.sel.na ? '—' : c.sel.total ? 'total' : c.sel.table >= c.sel.Imax ? 'total s/ tabla' : `hasta ${kA(c.sel.IsEff)} kA`;
+    return { n, r, c, ik, up, sl };
+  });
+}
+function renderResults() {
+  const s = state.src, root = R.res[state.nodes[0].id];
+  const icwOk = s.Icw * 1e3 >= root.ik.Ik3, ipkOk = s.Ipk * 1e3 >= root.ik.ip;
+  $('#board').innerHTML = `
+    <div class="kpi"><span>Ik3 máx barra principal</span><b>${kA(root.ik.Ik3)} kA</b></div>
+    <div class="kpi"><span>ip barra principal (κ = ${fmt(root.ik.kappa)})</span><b>${kA(root.ik.ip)} kA</b></div>
+    <div class="kpi ${icwOk ? 'ok' : 'bad'}"><span>Icw del tablero ${icwOk ? '≥' : '<'} Ik3</span><b>${fmt(s.Icw)} kA</b></div>
+    <div class="kpi ${ipkOk ? 'ok' : 'bad'}"><span>Ipk del tablero ${ipkOk ? '≥' : '<'} ip</span><b>${fmt(s.Ipk)} kA</b></div>
+    <div class="kpi"><span>In transformador a ${fmt(s.Ur, 4)} V</span><b>${fmt(R.src.InT * s.nTr, 4)} A</b></div>`;
+  $('#warn').innerHTML = R.src.warn.map(w => `<p>${w}</p>`).join('');
+  $('#results tbody').innerHTML = rows().map(({ n, r, c, ik, up, sl }) => `<tr class="${n.id === sel ? 'on' : ''}" data-id="${n.id}">
+    <th>${esc(n.name)}<small>desde ${esc(up)}</small></th>
+    <td>${kA(r.loc.Ik3)} / ${kA(r.loc.Ik1)}</td>
+    <td>${kA(ik.Ik3)}</td><td>${kA(ik.ip)}</td><td>${kA(ik.Ik1)}</td><td>${kA(ik.Ik3min)}</td><td>${kA(ik.Ik1min)}</td><td>${fmt(ik.rx, 2)}</td>
+    ${cell(c.icu.ok, `${fmt(c.icu.Icu)} kA`)}
+    ${cell(c.iz.ok, c.iz.na ? `Ib ≤ Ir (sin Iz)` : `${fmt(n.Ib, 4)} ≤ ${fmt(n.brk.Ir, 4)} ≤ ${fmt(n.Iz, 4)}`)}
+    ${cell(c.dis.ok, tfmt(c.dis.t))}
+    ${cell(c.th.ok, c.th.na ? 'sin cable' : c.th.ok ? 'cumple' : 'no cumple', c.th.na)}
+    ${cell(c.sel.okEff, sl, c.sel.na)}
+  </tr>`).join('');
+}
+$('#results').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (!tr) return; sel = tr.dataset.id; renderEditor(); refresh(); });
+
+// ---------- Curvas ----------
+function renderChart() {
+  const n = nodeById(sel), r = R.res[n.id];
+  const up = n.parent === 'TR' ? null : nodeById(n.parent);
+  const W = 760, H = 470, ml = 62, mr = 18, mt = 16, mb = 46, w = W - ml - mr, h = H - mt - mb;
+  const IccLoc = Math.max(r.loc.Ik3, r.loc.Ik1);
+  const lo = Math.min(n.brk.Ir, up ? up.brk.Ir : Infinity) * 0.7, hi = IccLoc * 2;
+  const lx0 = Math.floor(Math.log10(lo)), lx1 = Math.ceil(Math.log10(hi)), lt0 = -3, lt1 = 4;
+  const X = I => ml + (Math.log10(I) - lx0) / (lx1 - lx0) * w;
+  const Y = t => mt + (lt1 - Math.log10(Math.min(Math.max(t, 1e-3), 1e4))) / (lt1 - lt0) * h;
+  let g = '';
+  for (let d = lx0; d <= lx1; d++) {
+    for (const m of [1, 2, 5]) { const I = m * 10 ** d; if (d === lx1 && m > 1) continue; g += `<line class="${m === 1 ? 'gM' : 'gm'}" x1="${X(I)}" x2="${X(I)}" y1="${mt}" y2="${mt + h}"/>`; if (m === 1 || (lx1 - lx0) <= 3) g += `<text class="ax" x="${X(I)}" y="${mt + h + 16}" text-anchor="middle">${I >= 1e3 ? fmt(I / 1e3) + 'k' : fmt(I)}</text>`; }
+  }
+  for (let d = lt0; d <= lt1; d++) { g += `<line class="gM" x1="${ml}" x2="${ml + w}" y1="${Y(10 ** d)}" y2="${Y(10 ** d)}"/><text class="ax" x="${ml - 6}" y="${Y(10 ** d) + 4}" text-anchor="end">${d < 0 ? fmt(10 ** d * 1e3) + ' ms' : fmt(10 ** d) + ' s'}</text>`; }
+  g += `<text class="axt" x="${ml + w / 2}" y="${H - 6}" text-anchor="middle">Corriente [A] a ${fmt(state.src.Ur, 4)} V</text>`;
+  const band = (b, cls) => {
+    const N = 360, pts = [], lw = [], hg = [];
+    for (let i = 0; i <= N; i++) { const I = 10 ** (lx0 + (lx1 - lx0) * i / N); const [a, z] = tripTimes(b, I); lw.push([I, isFinite(a) ? a : 1e4]); hg.push([I, isFinite(z) ? z : 1e4]); }
+    const poly = lw.concat(hg.slice().reverse()).map(([I, t]) => `${X(I).toFixed(1)},${Y(t).toFixed(1)}`).join(' ');
+    return `<polygon class="${cls}" points="${poly}"/>`;
+  };
+  let curves = '';
+  if (up) curves += band(up.brk, 'bUp');
+  curves += band(n.brk, 'bDn');
+  if (n.cable.L > 0) {
+    const kS = KTAB[n.cable.mat][n.cable.ins] * n.cable.S * n.cable.n; let d = '';
+    for (let i = 0; i <= 120; i++) { const I = 10 ** (lx0 + (lx1 - lx0) * i / 120); const t = (kS / I) ** 2; if (t <= 1e4 && t >= 1e-3 && t <= 5) d += (d ? 'L' : 'M') + X(I).toFixed(1) + ',' + Y(t).toFixed(1); }
+    if (d) curves += `<path class="kS" d="${d}"/>`;
+  }
+  const vline = (I, cls, txt, yy) => (I > 10 ** lx0 && I < 10 ** lx1) ? `<line class="${cls}" x1="${X(I)}" x2="${X(I)}" y1="${mt}" y2="${mt + h}"/><text class="vt ${cls}" x="${X(I) + 4}" y="${yy}">${txt}</text>` : '';
+  curves += vline(IccLoc, 'vMax', `Icc máx en interruptor ${kA(IccLoc)} kA`, mt + 14);
+  curves += vline(r.chk.dis.I, 'vMin', `Icc mín fin de línea ${kA(r.chk.dis.I)} kA`, mt + 30);
+  if (up && !r.chk.sel.total) curves += vline(r.chk.sel.Is, 'vSel', `límite por curvas ${kA(r.chk.sel.Is)} kA`, mt + 46);
+  $('#chart').innerHTML = `<rect x="${ml}" y="${mt}" width="${w}" height="${h}" class="frame"/>${g}<clipPath id="cp"><rect x="${ml}" y="${mt}" width="${w}" height="${h}"/></clipPath><g clip-path="url(#cp)">${curves}</g>`;
+  $('#legend').innerHTML = `${up ? `<span class="lg up">${esc(up.name)} (aguas arriba)</span>` : ''}<span class="lg dn">${esc(n.name)}</span>${n.cable.L > 0 ? '<span class="lg ks">Cable: k²S² (t ≤ 5 s)</span>' : ''}`;
+  const c = r.chk.sel;
+  $('#selmsg').innerHTML = !up ? 'La barra principal no tiene interruptor BT aguas arriba: la selectividad con la protección MT del transformador se verifica aparte.' :
+    c.total ? `Las bandas no se superponen hasta ${kA(c.Imax)} kA (Icc máx en el punto de instalación): selectividad total por curvas.` :
+    `Las bandas se cruzan a ${kA(c.Is)} kA y la Icc máx en el punto es ${kA(c.Imax)} kA. ${c.table > 0 ? `Con la tabla del fabricante (${kA(c.table)} kA) la selectividad ${c.table >= c.Imax ? 'resulta total.' : 'sigue siendo parcial.'}` : 'En la zona instantánea (por debajo de ~10–20 ms) las curvas no alcanzan: confirmar con la tabla de selectividad del fabricante (IEC 60947-2 anexo A) y cargarla en el editor.'} Relación Ir aguas arriba / abajo = ${fmt(c.ratioIr, 2)}.`;
+}
+
+// ---------- Memoria de cálculo ----------
+function renderMemo() {
+  const s = state.src, src = R.src, n = nodeById(sel), r = R.res[n.id];
+  const path = []; let p = n; while (p) { path.unshift(p); p = p.parent === 'TR' ? null : nodeById(p.parent); }
+  const zr = (lbl, Z, note = '') => `<tr><th>${lbl}${note ? `<small>${note}</small>` : ''}</th><td>${(Z.r * 1e3).toFixed(4)}</td><td>${(Z.x * 1e3).toFixed(4)}</td><td>${(Math.hypot(Z.r, Z.x) * 1e3).toFixed(4)}</td></tr>`;
+  let t = zr('Red MT referida a BT', src.Zq, `Z = 1,1·U²/Scc, R/X = ${s.RXq}`) +
+    zr('Transformador sin corregir', src.ZTraw, `R = Pk·U²/Sn², Z = uk·U²/Sn`) +
+    zr(`Transformador × KT`, src.ZT, `KT = 0,95·cmáx/(1+0,6·xT) = ${s.KT ? src.KT.toFixed(4) : '1 (desactivado)'}`);
+  if (src.ZM) t += zr('Motores (en paralelo en barra principal)', src.ZM, `Z = U/(√3·ILR)`);
+  path.forEach(q => { const cb = R.res[q.id].cb; t += zr(`Cable ${esc(q.name)}`, cb.Z1, `${q.cable.n}×${q.cable.S} mm² ${q.cable.mat}, ${q.cable.L} m`); });
+  t += zr('Z1 total en la barra (máx)', r.Z.Z1) + zr('Z0 total en la barra (máx)', r.Z.Z0, 'Z0T + Σ(R+3Rpe, 4X)');
+  const ik = r.ik, th = r.chk.th;
+  $('#memo').innerHTML = `
+  <table class="zt"><thead><tr><th>Impedancias hasta «${esc(n.name)}»</th><th>R [mΩ]</th><th>X [mΩ]</th><th>|Z| [mΩ]</th></tr></thead><tbody>${t}</tbody></table>
+  <div class="eq">
+    <p><b>Ik3 máx</b> = c·Un / (√3·|Z1|) = ${s.cmax}·${s.Ur} / (√3·${(cabs(r.Z.Z1) * 1e3).toFixed(4)} mΩ) = <b>${kA(ik.Ik3)} kA</b></p>
+    <p><b>ip</b> = κ·√2·Ik3, κ = 1,02 + 0,98·e<sup>−3R/X</sup> = ${fmt(ik.kappa, 4)} con R/X = ${fmt(ik.rx, 3)} → <b>${kA(ik.ip)} kA</b></p>
+    <p><b>Ik1 máx</b> = √3·c·Un / |2Z1 + Z0| = <b>${kA(ik.Ik1)} kA</b> (sin aporte de motores)</p>
+    <p><b>Ik mín</b>: c = ${s.cmin}, Scc red = ${s.SccMin} MVA, R cables × ${R.fT.toFixed(2)} (θ = ${s.thetaE} °C) → Ik3 ${kA(ik.Ik3min)} kA, Ik2 ${kA(ik.Ik2min)} kA, Ik1 <b>${kA(ik.Ik1min)} kA</b></p>
+    <p><b>Desconexión</b> a ${kA(r.chk.dis.I)} kA: t máx de la banda = ${tfmt(r.chk.dis.t)}, límite ${r.chk.dis.tlim} s</p>
+    ${th.na ? '' : `<p><b>Térmica</b> k = ${th.k}. A Icc máx: I²t = ${fmt(th.EA / 1e6)} kA²s${th.letUsed ? ' (I²t pasante de catálogo)' : ` (I²·t con t = ${tfmt(th.tA)})`} frente a k²S² = ${fmt(th.lim / 1e6)} kA²s. A Icc mín: ${fmt(th.EB / 1e6)} kA²s frente a k²S²(PE) = ${fmt(th.limPE / 1e6)} kA²s.</p>`}
+  </div>`;
+}
+
+function renderTrafo() {
+  const s = state.src, src = R.src, U = s.Ur;
+  const ZtotK = add(src.Zq, src.ZT), Ztot0 = add(src.Zq, src.ZTnoK);
+  const ik = Z => s.cmax * U / (SQ3 * cabs(Z));
+  const row = (l, Z, note = '') => `<tr><th>${l}${note ? `<small>${note}</small>` : ''}</th><td>${Z.r.toExponential(2).replace('.', ',')}</td><td>${Z.x.toExponential(2).replace('.', ',')}</td><td>${cabs(Z).toExponential(2).replace('.', ',')}</td></tr>`;
+  const InT = src.InT * s.nTr;
+  $('#trafo').innerHTML = `<table class="zt"><thead><tr><th>Impedancias hasta bornes BT del transformador</th><th>R [Ω]</th><th>X [Ω]</th><th>Z [Ω]</th></tr></thead><tbody>
+    ${row('Red', src.Zq, `Scc = ${fmt(s.SccMax, 4)} MVA, c<sub>Q</sub> = 1,1`)}
+    ${row('Transformador', src.ZT, `${fmt(s.Sn, 4)} kVA × ${s.nTr}, uk = ${s.uk} %, Pk = ${s.Pk} kW${s.PkSrc === 'est' ? ' (VERIFICAR)' : ''}, K<sub>T</sub> = ${s.KT ? src.KT.toFixed(3).replace('.', ',') : '1'}`)}
+    ${row('Total hasta bornes', ZtotK)}
+  </tbody></table>
+  <div id="board2">
+    <div class="kpi"><span>Ik3 máx en bornes (c = ${String(s.cmax).replace('.', ',')})</span><b>${kA(ik(ZtotK))} kA</b></div>
+    <div class="kpi"><span>ip en bornes (κ = ${fmt(R.trLoc.kappa)})</span><b>${kA(R.trLoc.ip)} kA</b></div>
+    <div class="kpi"><span>Ik1 máx en bornes</span><b>${kA(R.trLoc.Ik1)} kA</b></div>
+    <div class="kpi"><span>In transformador a ${fmt(U, 4)} V</span><b>${fmt(InT, 4)} A</b></div>
+  </div>
+  <p class="notes">Trazabilidad: sin K<sub>T</sub> el mismo cálculo da ${kA(ik(Ztot0))} kA. La In se calcula con la tensión de vacío del secundario, la misma que se usa en las impedancias.</p>`;
+}
+
+function refresh() { R = compute(state); renderTrafo(); renderTree(); renderResults(); renderChart(); renderMemo(); save(); }
+
+// ---------- Exportar / importar ----------
+function flash(msg) { const f = $('#flash'); f.textContent = msg; f.classList.add('show'); clearTimeout(flash.t); flash.t = setTimeout(() => f.classList.remove('show'), 2600); }
+function openDlg(title, text, importable) {
+  $('#dlgTitle').textContent = title; $('#dlgText').value = text; $('#dlgImport').hidden = !importable; $('#dlg').showModal(); $('#dlgText').select();
+}
+$('#btnTSV').onclick = () => {
+  const n2 = v => isFinite(v) ? (v / 1e3).toFixed(2).replace('.', ',') : '';
+  const head = ['Salida', 'Aguas arriba', 'Ik3 en interruptor [kA]', 'Ik3 máx barra [kA]', 'ip [kA]', 'Ik1 máx [kA]', 'Ik3 mín [kA]', 'Ik1 mín [kA]', 'Icu [kA]', 'Poder de corte', 'Ib-In-Iz', 'Desconexión', 'Térmica', 'Selectividad'];
+  const lines = rows().map(({ n, r, c, ik, up, sl }) => [n.name, up, n2(r.loc.Ik3), n2(ik.Ik3), n2(ik.ip), n2(ik.Ik1), n2(ik.Ik3min), n2(ik.Ik1min), String(n.brk.Icu).replace('.', ','),
+    c.icu.ok ? 'cumple' : 'NO cumple', c.iz.ok ? 'cumple' : 'NO cumple', (c.dis.ok ? 'cumple ' : 'NO cumple ') + tfmt(c.dis.t), c.th.na ? '—' : c.th.ok ? 'cumple' : 'NO cumple', sl].join('\t'));
+  const txt = [head.join('\t'), ...lines].join('\n');
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => flash('Resultados copiados. Pegá en Excel.'), () => openDlg('Resultados para Excel', txt, false));
+  else openDlg('Resultados para Excel', txt, false);
+};
+$('#btnJSON').onclick = () => openDlg('Proyecto (JSON): copiá para guardar o pegá uno para cargarlo', JSON.stringify(state, null, 1), true);
+$('#dlgImport').onclick = () => {
+  try { const s = JSON.parse($('#dlgText').value); if (!s.src || !s.nodes || !s.nodes.length) throw 0; state = s; fixOrder(); sel = state.nodes[0].id; renderSource(); renderEditor(); refresh(); $('#dlg').close(); flash('Proyecto cargado.'); }
+  catch (e) { flash('El texto no es un proyecto válido: tiene que tener "src" y "nodes".'); }
+};
+$('#dlgClose').onclick = () => $('#dlg').close();
+$('#btnEx').onclick = () => { state = JSON.parse(JSON.stringify(EXAMPLE)); sel = 'n2'; renderSource(); renderEditor(); refresh(); flash('Ejemplo cargado.'); };
+
+renderSource(); renderEditor(); refresh();
+</script></body></html>
